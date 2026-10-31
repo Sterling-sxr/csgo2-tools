@@ -5,6 +5,22 @@ are written in English first, followed by Chinese.
 
 FACEIT Scout 的主要版本变更记录在此。公开发布说明以英文为主，并附中文说明。
 
+## [Unreleased]
+
+### English
+
+- Added GitHub Actions CI for Next.js, Cloudflare Worker and .NET verification.
+- Added tag-driven Windows ZIP publishing with SHA-256 release assets.
+- Added automated Cloudflare Worker deployment support with protected credentials.
+- Added weekly Dependabot checks for pnpm and GitHub Actions dependencies.
+
+### 中文
+
+- 新增针对 Next.js、Cloudflare Worker 和 .NET 的 GitHub Actions CI。
+- 新增由版本标签触发的 Windows ZIP 和 SHA-256 自动发布。
+- 新增使用受保护凭据的 Cloudflare Worker 自动部署支持。
+- 新增每周检查 pnpm 与 GitHub Actions 依赖的 Dependabot 配置。
+
 ## [0.1.0] - 2026-10-31
 
 ### English

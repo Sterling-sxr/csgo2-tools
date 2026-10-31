@@ -6,6 +6,9 @@
 
 [Download the latest release](https://github.com/Sterling-sxr/csgo2-tools/releases/latest) · [Release notes](CHANGELOG.md)
 
+[![CI](https://github.com/Sterling-sxr/csgo2-tools/actions/workflows/ci.yml/badge.svg)](https://github.com/Sterling-sxr/csgo2-tools/actions/workflows/ci.yml)
+[![Worker deployment](https://github.com/Sterling-sxr/csgo2-tools/actions/workflows/deploy-worker.yml/badge.svg)](https://github.com/Sterling-sxr/csgo2-tools/actions/workflows/deploy-worker.yml)
+
 ---
 
 ## English
@@ -175,6 +178,34 @@ FACEIT usage.
 | `pnpm cloud:dev` | Run the Worker locally |
 | `pnpm cloud:secret` | Store `FACEIT_API_KEY` in Cloudflare |
 | `pnpm cloud:deploy` | Deploy the Worker |
+
+### CI/CD
+
+GitHub Actions provides three automated pipelines:
+
+- **CI** runs on every pull request and push to `main`. It type-checks the
+  Next.js app and Worker, builds the production Next.js bundle and .NET desktop
+  app, and runs the companion self-test.
+- **Release Windows package** runs when a semantic version tag such as
+  `v0.2.0` is pushed. The tag must match `package.json`. It creates the
+  self-contained Windows x64 ZIP, verifies that no environment files are
+  included, runs the packaged self-test, creates a SHA-256 checksum and
+  publishes both files to GitHub Releases.
+- **Deploy Cloudflare Worker** validates Worker changes pushed to `main` and
+  deploys them when the production credential is configured.
+
+Required repository configuration for Worker deployment:
+
+1. Create a narrowly scoped Cloudflare API token with **Workers Scripts: Edit**
+   access for the deployment account.
+2. Add it to the GitHub `production` environment as the
+   `CLOUDFLARE_API_TOKEN` secret.
+3. Set the repository variable `CLOUDFLARE_ACCOUNT_ID` to the target account ID.
+4. Optionally set `FACEIT_API_BASE_URL`; release builds otherwise use the
+   project's current public Worker URL.
+
+The existing `FACEIT_API_KEY` remains a Cloudflare Worker secret and is never
+copied into GitHub Actions or release archives.
 
 ### Security
 
@@ -348,6 +379,29 @@ Worker 地址本身是公开的，但 FACEIT Key 不会公开。路径白名单�
 | `pnpm cloud:dev` | 本地运行 Worker |
 | `pnpm cloud:secret` | 在 Cloudflare 保存 `FACEIT_API_KEY` |
 | `pnpm cloud:deploy` | 部署 Worker |
+
+### CI/CD
+
+GitHub Actions 包含三条自动流水线：
+
+- **CI**：每次向 `main` 推送或创建 Pull Request 时运行，检查 Next.js 和 Worker
+  类型、构建生产版 Next.js 与 .NET 桌面端，并运行 Companion 自检。
+- **Release Windows package**：推送 `v0.2.0` 这类语义化版本标签时运行。标签必须
+  与 `package.json` 一致；流水线会生成 Windows x64 自包含 ZIP，检查压缩包中没有
+  环境变量文件，运行打包程序自检，生成 SHA-256，并把 ZIP 和校验文件发布到 GitHub Releases。
+- **Deploy Cloudflare Worker**：`main` 中的 Worker 文件变更后自动验证；配置生产部署
+  凭据后自动发布到 Cloudflare。
+
+Worker 自动部署需要以下仓库配置：
+
+1. 在 Cloudflare 创建只允许目标账户 **Workers Scripts: Edit** 的最小权限 API Token。
+2. 将 Token 保存到 GitHub `production` Environment 的
+   `CLOUDFLARE_API_TOKEN` Secret。
+3. 将目标账户 ID 保存为仓库变量 `CLOUDFLARE_ACCOUNT_ID`。
+4. 可以选择设置 `FACEIT_API_BASE_URL`；未设置时 Release 使用项目当前公开 Worker 地址。
+
+现有 `FACEIT_API_KEY` 仍然只保存在 Cloudflare Worker Secret 中，不会进入 GitHub
+Actions 或发布压缩包。
 
 ### 安全说明
 

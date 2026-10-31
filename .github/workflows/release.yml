@@ -1,0 +1,153 @@
+name: Release Windows package
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build and publish ${{ github.ref_name }}
+    runs-on: windows-latest
+    timeout-minutes: 45
+    env:
+      FACEIT_API_BASE_URL: ${{ vars.FACEIT_API_BASE_URL || 'https://faceit-scout-api.sterling-cs2-tools.workers.dev' }}
+      GH_TOKEN: ${{ github.token }}
+
+    steps:
+      - name: Check out tagged source
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up pnpm and Node.js
+        uses: pnpm/setup@v2
+        with:
+          version: 11.22.0
+          runtime: node@22
+          cache: true
+          require-lockfile: true
+
+      - name: Restore Next.js build cache
+        uses: actions/cache@v5
+        with:
+          path: .next/cache
+          key: ${{ runner.os }}-release-next-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-release-next-${{ hashFiles('pnpm-lock.yaml') }}-
+
+      - name: Set up .NET 8
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Verify tag matches package version
+        shell: pwsh
+        run: |
+          $version = (Get-Content -LiteralPath package.json -Raw | ConvertFrom-Json).version
+          $expectedTag = "v$version"
+          if ($env:GITHUB_REF_NAME -ne $expectedTag) {
+            throw "Tag '$env:GITHUB_REF_NAME' does not match package version '$expectedTag'."
+          }
+
+      - name: Run source checks
+        run: |
+          pnpm typecheck
+          pnpm cloud:typecheck
+
+      - name: Build release archive
+        shell: pwsh
+        run: ./scripts/create-release.ps1 -FaceitApiBaseUrl $env:FACEIT_API_BASE_URL
+
+      - name: Verify package and write checksum
+        shell: pwsh
+        run: |
+          $version = (Get-Content -LiteralPath package.json -Raw | ConvertFrom-Json).version
+          $archive = "dist/CS2FaceitCompanion-v$version-win-x64.zip"
+          if (-not (Test-Path -LiteralPath $archive)) {
+            throw "Release archive was not created: $archive"
+          }
+
+          $environmentFiles = Get-ChildItem -LiteralPath dist/companion-win-x64 `
+            -Recurse -Force -File | Where-Object { $_.Name -like '.env*' }
+          if ($environmentFiles) {
+            throw "Release package contains an environment file."
+          }
+
+          $selfTest = Start-Process `
+            -FilePath "dist/companion-win-x64/CS2FaceitCompanion.exe" `
+            -ArgumentList "--self-test" `
+            -Wait -PassThru -WindowStyle Hidden
+          if ($selfTest.ExitCode -ne 0) {
+            throw "Companion self-test failed with exit code $($selfTest.ExitCode)."
+          }
+
+          $hash = (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant()
+          $archiveName = Split-Path -Leaf $archive
+          "$hash  $archiveName" | Set-Content -LiteralPath "$archive.sha256" -Encoding ascii
+
+      - name: Extract version release notes
+        shell: pwsh
+        run: |
+          $version = (Get-Content -LiteralPath package.json -Raw | ConvertFrom-Json).version
+          $lines = @(Get-Content -LiteralPath CHANGELOG.md)
+          $start = -1
+          for ($index = 0; $index -lt $lines.Count; $index++) {
+            if ($lines[$index] -match "^## \[$([regex]::Escape($version))\]") {
+              $start = $index
+              break
+            }
+          }
+          if ($start -lt 0) {
+            throw "CHANGELOG.md does not contain release notes for version $version."
+          }
+
+          $end = $lines.Count
+          for ($index = $start + 1; $index -lt $lines.Count; $index++) {
+            if ($lines[$index] -match '^## \[') {
+              $end = $index
+              break
+            }
+          }
+
+          $lines[$start..($end - 1)] |
+            Set-Content -LiteralPath dist/release-notes.md -Encoding utf8
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: FACEIT-Scout-${{ github.ref_name }}-win-x64
+          path: |
+            dist/CS2FaceitCompanion-*-win-x64.zip
+            dist/CS2FaceitCompanion-*-win-x64.zip.sha256
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Publish GitHub Release
+        shell: pwsh
+        run: |
+          $version = (Get-Content -LiteralPath package.json -Raw | ConvertFrom-Json).version
+          $archive = "dist/CS2FaceitCompanion-v$version-win-x64.zip"
+          $checksum = "$archive.sha256"
+          $tag = $env:GITHUB_REF_NAME
+
+          gh release view $tag *> $null
+          if ($LASTEXITCODE -eq 0) {
+            gh release edit $tag `
+              --title "FACEIT Scout $tag" `
+              --notes-file dist/release-notes.md
+            gh release upload $tag $archive $checksum --clobber
+          }
+          else {
+            gh release create $tag $archive $checksum `
+              --verify-tag `
+              --title "FACEIT Scout $tag" `
+              --notes-file dist/release-notes.md
+          }

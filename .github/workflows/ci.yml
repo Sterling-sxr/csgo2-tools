@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Verify web, Worker and Windows app
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up pnpm and Node.js
+        uses: pnpm/setup@v2
+        with:
+          version: 11.22.0
+          runtime: node@22
+          cache: true
+          require-lockfile: true
+
+      - name: Restore Next.js build cache
+        uses: actions/cache@v5
+        with:
+          path: .next/cache
+          key: ${{ runner.os }}-next-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('app/**/*', 'lib/**/*', 'next.config.ts') }}
+          restore-keys: |
+            ${{ runner.os }}-next-${{ hashFiles('pnpm-lock.yaml') }}-
+
+      - name: Set up .NET 8
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Type-check Next.js app
+        run: pnpm typecheck
+
+      - name: Type-check Cloudflare Worker
+        run: pnpm cloud:typecheck
+
+      - name: Build Next.js app
+        run: pnpm build
+
+      - name: Build Windows companion
+        run: dotnet build companion/Cs2FaceitCompanion.csproj -c Release
+
+      - name: Run companion self-test
+        run: dotnet run --project companion/Cs2FaceitCompanion.csproj -c Release --no-build -- --self-test
