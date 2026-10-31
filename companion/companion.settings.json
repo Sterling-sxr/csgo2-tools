@@ -1,0 +1,8 @@
+{
+  "dashboardUrl": "http://localhost:3000/",
+  "faceitApiBaseUrl": "https://faceit-scout-api.sterling-cs2-tools.workers.dev",
+  "faceitProcessNames": ["FACEIT"],
+  "scanIntervalMilliseconds": 1500,
+  "overlayHotkey": "Oemtilde",
+  "startMinimized": false
+}

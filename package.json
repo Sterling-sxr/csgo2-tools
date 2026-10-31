@@ -1,13 +1,17 @@
 {
   "name": "csgo2-tools",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "FACEIT live match companion for Counter-Strike 2",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "cloud:typecheck": "tsc -p cloud-api/tsconfig.json",
+    "cloud:dev": "wrangler dev --config cloud-api/wrangler.jsonc",
+    "cloud:secret": "wrangler secret put FACEIT_API_KEY --config cloud-api/wrangler.jsonc",
+    "cloud:deploy": "wrangler deploy --config cloud-api/wrangler.jsonc"
   },
   "keywords": [
     "cs2",
@@ -32,6 +36,7 @@
     "@types/node": "^26.2.0",
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "wrangler": "4.156.0"
   }
 }

@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "CS2 FACEIT Live Scout",
+  "version": "0.1.0",
+  "description": "Automatically opens CS2 FACEIT Tools when a FACEIT matchroom is detected.",
+  "permissions": ["storage", "tabs"],
+  "host_permissions": ["https://www.faceit.com/*"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://www.faceit.com/*"],
+      "js": ["content-script.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "options_page": "options.html"
+}

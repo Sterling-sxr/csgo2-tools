@@ -1,23 +1,23 @@
 import { NextResponse } from "next/server";
 import {
   FaceitApiError,
-  getFaceitPlayerByNickname,
+  getPlayerLookupResult,
 } from "@/lib/faceit";
 
 export async function GET(request: Request) {
   const nickname = new URL(request.url).searchParams.get("nickname")?.trim();
 
   if (!nickname) {
-    return NextResponse.json({ error: "请输入 FACEIT 昵称" }, { status: 400 });
+    return NextResponse.json({ error: "Enter a FACEIT nickname" }, { status: 400 });
   }
 
   if (nickname.length > 32) {
-    return NextResponse.json({ error: "FACEIT 昵称长度无效" }, { status: 400 });
+    return NextResponse.json({ error: "The FACEIT nickname is too long" }, { status: 400 });
   }
 
   try {
-    const player = await getFaceitPlayerByNickname(nickname);
-    return NextResponse.json(player);
+    const result = await getPlayerLookupResult(nickname);
+    return NextResponse.json(result);
   } catch (error) {
     if (error instanceof FaceitApiError) {
       return NextResponse.json(
@@ -26,11 +26,11 @@ export async function GET(request: Request) {
       );
     }
 
-    const message = error instanceof Error ? error.message : "未知错误";
+    const message = error instanceof Error ? error.message : "Unknown error";
     const isTimeout = error instanceof Error && error.name === "TimeoutError";
 
     return NextResponse.json(
-      { error: isTimeout ? "FACEIT 请求超时，请稍后重试" : message },
+      { error: isTimeout ? "FACEIT timed out. Try again shortly." : message },
       { status: 502 },
     );
   }

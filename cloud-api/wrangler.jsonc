@@ -1,0 +1,25 @@
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "faceit-scout-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-30",
+  "workers_dev": true,
+  "preview_urls": false,
+  "upload_source_maps": true,
+  "secrets": {
+    "required": ["FACEIT_API_KEY"]
+  },
+  "observability": {
+    "enabled": true
+  },
+  "ratelimits": [
+    {
+      "name": "RATE_LIMITER",
+      "namespace_id": "41001",
+      "simple": {
+        "limit": 600,
+        "period": 60
+      }
+    }
+  ]
+}

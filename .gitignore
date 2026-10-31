@@ -3,3 +3,9 @@ dist/
 .next/
 *.tsbuildinfo
 .env
+.dev.vars
+**/.dev.vars
+.wrangler/
+**/.wrangler/
+**/bin/
+**/obj/

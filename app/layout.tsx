@@ -4,12 +4,12 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "CS2 FACEIT Scout",
-  description: "查询 FACEIT 玩家等级、ELO 与公开战绩",
+  description: "Live FACEIT match and player scouting for Counter-Strike 2",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
-    <html lang="zh-CN">
+    <html lang="en">
       <body>{children}</body>
     </html>
   );
